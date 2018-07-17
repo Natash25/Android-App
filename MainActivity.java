@@ -13,49 +13,66 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.example.android.datafrominternet;
+package com.example.android.sunshine;
 
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
-import android.widget.EditText;
 import android.widget.TextView;
 
 public class MainActivity extends AppCompatActivity {
 
-    private EditText mSearchBoxEditText;
-
-    private TextView mUrlDisplayTextView;
-
-    private TextView mSearchResultsTextView;
+    private TextView mWeatherTextView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
+        setContentView(R.layout.activity_forecast);
 
-        mSearchBoxEditText = (EditText) findViewById(R.id.et_search_box);
+        /*
+         * Using findViewById, we get a reference to our TextView from xml. This allows us to
+         * do things like set the text of the TextView.
+         */
+        mWeatherTextView = (TextView) findViewById(R.id.tv_weather_data);
 
-        mUrlDisplayTextView = (TextView) findViewById(R.id.tv_url_display);
-        mSearchResultsTextView = (TextView) findViewById(R.id.tv_github_search_results_json);
+        // TODO (4) Delete the dummy weather data. You will be getting REAL data from the Internet in this lesson.
+        /*
+         * This String array contains dummy weather data. Later in the course, we're going to get
+         * real weather data. For now, we want to get something on the screen as quickly as
+         * possible, so we'll display this dummy data.
+         */
+        String[] dummyWeatherData = {
+                "Today, May 17 - Clear - 17°C / 15°C",
+                "Tomorrow - Cloudy - 19°C / 15°C",
+                "Thursday - Rainy- 30°C / 11°C",
+                "Friday - Thunderstorms - 21°C / 9°C",
+                "Saturday - Thunderstorms - 16°C / 7°C",
+                "Sunday - Rainy - 16°C / 8°C",
+                "Monday - Partly Cloudy - 15°C / 10°C",
+                "Tue, May 24 - Meatballs - 16°C / 18°C",
+                "Wed, May 25 - Cloudy - 19°C / 15°C",
+                "Thu, May 26 - Stormy - 30°C / 11°C",
+                "Fri, May 27 - Hurricane - 21°C / 9°C",
+                "Sat, May 28 - Meteors - 16°C / 7°C",
+                "Sun, May 29 - Apocalypse - 16°C / 8°C",
+                "Mon, May 30 - Post Apocalypse - 15°C / 10°C",
+        };
+
+        // TODO (3) Delete the for loop that populates the TextView with dummy data
+        /*
+         * Iterate through the array and append the Strings to the TextView. The reason why we add
+         * the "\n\n\n" after the String is to give visual separation between each String in the
+         * TextView. Later, we'll learn about a better way to display lists of data.
+         */
+        for (String dummyWeatherDay : dummyWeatherData) {
+            mWeatherTextView.append(dummyWeatherDay + "\n\n\n");
+        }
+
+        // TODO (9) Call loadWeatherData to perform the network request to get the weather
     }
 
-    // Do 2 - 7 in menu.xml ///////////////////////////////////////////////////////////////////////
-    // TODO (2) Create a menu xml called 'main.xml' in the res->menu folder
-    // TODO (3) Add one menu item to your menu
-    // TODO (4) Give the menu item an id of @+id/action_search
-    // TODO (5) Set the orderInCategory to 1
-    // TODO (6) Show this item if there is room (use app:showAsAction, not android:showAsAction)
-    // TODO (7) Set the title to the search string ("Search") from strings.xml
-    // Do 2 - 7 in menu.xml ///////////////////////////////////////////////////////////////////////
+    // TODO (8) Create a method that will get the user's preferred location and execute your new AsyncTask and call it loadWeatherData
 
-
-    // TODO (8) Override onCreateOptionsMenu
-    // TODO (9) Within onCreateOptionsMenu, use getMenuInflater().inflate to inflate the menu
-    // TODO (10) Return true to display your menu
-
-    // TODO (11) Override onOptionsItemSelected
-    // TODO (12) Within onOptionsItemSelected, get the ID of the item that was selected
-    // TODO (13) If the item's ID is R.id.action_search, show a Toast and return true to tell Android that you've handled this menu click
-    // TODO (14) Don't forgot to call .show() on your Toast
-    // TODO (15) If you do NOT handle the menu click, return super.onOptionsItemSelected to let Android handle the menu click
+    // TODO (5) Create a class that extends AsyncTask to perform network requests
+    // TODO (6) Override the doInBackground method to perform your network requests
+    // TODO (7) Override the onPostExecute method to display the results of the network request
 }
