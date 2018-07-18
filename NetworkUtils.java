@@ -16,6 +16,7 @@
 package com.example.android.sunshine.utilities;
 
 import android.net.Uri;
+import android.util.Log;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -81,6 +82,7 @@ public final class NetworkUtils {
         } catch (MalformedURLException e) {
             e.printStackTrace();
         }
+        Log.v(TAG, "Built URI " + url);
         return url;
     }
 
