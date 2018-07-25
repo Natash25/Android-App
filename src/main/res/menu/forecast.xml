@@ -3,5 +3,9 @@
     <item
         android:title="@string/refresh"
         android:id="@+id/action_refresh"/>
+    <!--(1) Add a menu item to open the map-->
+    <item
+        android:title="Open Map"
+        android:id="@+id/action_map"/>
 
 </menu>

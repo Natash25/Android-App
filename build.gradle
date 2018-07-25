@@ -21,6 +21,7 @@ dependencies {
     //noinspection GradleCompatible
     implementation 'com.android.support:appcompat-v7:25.1.0'
     //noinspection GradleDependency
+    //implementation 'com.android.support.constraint:constraint-layout:1.1.2'
     androidTestImplementation 'com.android.support:support-annotations:25.1.0'
     //noinspection GradleDependency
     androidTestImplementation 'com.android.support.test:runner:0.5'

@@ -15,7 +15,10 @@
  */
 package com.example.android.sunshine;
 
+import android.app.Activity;
 import android.content.Context;
+import android.content.Intent;
+import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
@@ -36,6 +39,9 @@ import com.example.android.sunshine.utilities.OpenWeatherJsonUtils;
 
 import java.io.IOException;
 import java.net.URL;
+
+import static android.content.Intent.ACTION_VIEW;
+import static android.content.Intent.EXTRA_TEXT;
 // (8) Implement ForecastAdapterOnClickHandler from the MainActivity
 
 public class MainActivity extends AppCompatActivity implements ForecastAdapter.ForecastAdapterOnClickHandler {
@@ -82,7 +88,7 @@ public class MainActivity extends AppCompatActivity implements ForecastAdapter.F
     // Within ForecastAdapter.java /////////////////////////////////////////////////////////////////
 
 
-    private static final String TAG = NetworkUtils.class.getSimpleName();
+    private static final String TAG = MainActivity.class.getSimpleName();
 
     // (34) Add a private RecyclerView variable called mRecyclerView
     private RecyclerView mRecyclerView;
@@ -146,7 +152,14 @@ public class MainActivity extends AppCompatActivity implements ForecastAdapter.F
     @Override
     public void onClick(String weatherForToday) {
         Context context = this;
-        Toast.makeText(this, weatherForToday, Toast.LENGTH_LONG).show();
+        // (1) Create a new Activity called DetailActivity using Android Studio's wizard
+        // (2) Change the root layout of activity_detail.xml to a FrameLayout and remove unnecessary xml attributes
+        // (3) Remove the Toast and launch the DetailActivity using an explicit Intent
+        Class destinationClass = DetailActivity.class;
+        Intent intent = new Intent(context, destinationClass);
+        // (1) Pass the weather to the DetailActivity
+        intent.putExtra(EXTRA_TEXT, weatherForToday);
+        startActivity(intent);
     }
 
 
@@ -226,6 +239,28 @@ public class MainActivity extends AppCompatActivity implements ForecastAdapter.F
             loadWeatherData();
             return true;
         }
+
+        // (2) Launch the map when the map menu item is clicked
+        if (id == R.id.action_map) {
+            openMap();
+        }
         return super.onOptionsItemSelected(item);
+    }
+
+    public void openMap() {
+        String addressString = "1521 7th Avenue";
+        Uri.Builder builder = new Uri.Builder();
+        builder.scheme("geo")
+                .path("0,0")
+                .query(addressString);
+        Uri addressUri = builder.build();
+        Intent intent = new Intent(ACTION_VIEW);
+        intent.setData(addressUri);
+        if (intent.resolveActivity(getPackageManager())!=null) {
+            startActivity(intent);
+        } else {
+            Log.d(TAG, "Couldn't call " + addressUri.toString()
+                    + ", no receiving apps installed!");
+        }
     }
 }
