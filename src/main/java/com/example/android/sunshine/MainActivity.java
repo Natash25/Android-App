@@ -15,12 +15,16 @@
  */
 package com.example.android.sunshine;
 
-import android.app.Activity;
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.net.Uri;
-import android.os.AsyncTask;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
+import android.support.v4.app.LoaderManager.LoaderCallbacks;
+import android.support.v4.content.AsyncTaskLoader;
+import android.support.v4.content.Loader;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
@@ -30,21 +34,22 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.ProgressBar;
 import android.widget.TextView;
-import android.widget.Toast;
+
 
 import com.example.android.sunshine.data.SunshinePreferences;
 import com.example.android.sunshine.utilities.ForecastAdapter;
 import com.example.android.sunshine.utilities.NetworkUtils;
 import com.example.android.sunshine.utilities.OpenWeatherJsonUtils;
 
-import java.io.IOException;
+
 import java.net.URL;
 
 import static android.content.Intent.ACTION_VIEW;
 import static android.content.Intent.EXTRA_TEXT;
 // (8) Implement ForecastAdapterOnClickHandler from the MainActivity
-
-public class MainActivity extends AppCompatActivity implements ForecastAdapter.ForecastAdapterOnClickHandler {
+// (1) Implement the proper LoaderCallbacks interface and the methods of that interface
+// (3) Implement OnSharedPreferenceChangeListener on MainActivity
+public class MainActivity extends AppCompatActivity implements ForecastAdapter.ForecastAdapterOnClickHandler, LoaderCallbacks<String[]>, SharedPreferences.OnSharedPreferenceChangeListener {
     // Within forecast_list_item.xml //////////////////////////////////////////////////////////////
     // (5) Add a layout for an item in the list called forecast_list_item.xml
     // (6) Make the root of the layout a vertical LinearLayout
@@ -100,6 +105,9 @@ public class MainActivity extends AppCompatActivity implements ForecastAdapter.F
     //(16) Add a ProgressBar variable to show and hide the progress bar
     private ProgressBar mProgressBar;
 
+    private static final int WEATHER_LOADER = 0;
+    // (4) Add a private static boolean flag for preference updates and initialize it to false
+    private static boolean FLAG_FOR_PREF_UPDATES = false;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -125,15 +133,48 @@ public class MainActivity extends AppCompatActivity implements ForecastAdapter.F
         mProgressBar = (ProgressBar) findViewById(R.id.pb_loading_indicator);
 
         // (9) Call loadWeatherData to perform the network request to get the weather
-        loadWeatherData();
+        //loadWeatherData();
+        /*
+         * This ID will uniquely identify the Loader. We can use it, for example, to get a handle
+         * on our Loader at a later point in time through the support LoaderManager.
+         */
+        int loaderId = WEATHER_LOADER;
+
+        /*
+         * From MainActivity, we have implemented the LoaderCallbacks interface with the type of
+         * String array. (implements LoaderCallbacks<String[]>) The variable callback is passed
+         * to the call to initLoader below. This means that whenever the loaderManager has
+         * something to notify us of, it will do so through this callback.
+         */
+        LoaderCallbacks<String[]> callback = MainActivity.this;
+
+        /*
+         * The second parameter of the initLoader method below is a Bundle. Optionally, you can
+         * pass a Bundle to initLoader that you can then access from within the onCreateLoader
+         * callback. In our case, we don't actually use the Bundle, but it's here in case we wanted
+         * to.
+         */
+        Bundle bundleForLoader = null;
+
+        /*
+         * Ensures a loader is initialized and active. If the loader doesn't already exist, one is
+         * created and (if the activity/fragment is currently started) starts the loader. Otherwise
+         * the last created loader is re-used.
+         */
+        getSupportLoaderManager().initLoader(loaderId, bundleForLoader, callback);
+        // (6) Register MainActivity as a OnSharedPreferenceChangedListener in onCreate
+        PreferenceManager.getDefaultSharedPreferences(this).registerOnSharedPreferenceChangeListener(this);
     }
 
     // (8) Create a method that will get the user's preferred location and execute new AsyncTask and call it loadWeatherData
     private void loadWeatherData() {
         showWeatherDataView(); //show weather data before doing AsyncTask
         String location = SunshinePreferences.getPreferredWeatherLocation(this);
-        new WeatherQueryTask().execute(location);
+        // 7) Remove the code for the AsyncTask and initialize the AsyncTaskLoader
+        //new WeatherQueryTask().execute(location);
+
     }
+
 
     // (8) Create a method called showWeatherDataView that will hide the error message and show the weather data
     protected void showWeatherDataView() {
@@ -146,6 +187,29 @@ public class MainActivity extends AppCompatActivity implements ForecastAdapter.F
     protected void showErrorMessage() {
         mRecyclerView.setVisibility(View.INVISIBLE);
         mErrorMessageDisplay.setVisibility(View.VISIBLE);
+    }
+    // (7) In onStart, if preferences have been changed, refresh the data and set the flag to false
+    /**
+     * OnStart is called when the Activity is coming into view. This happens when the Activity is
+     * first created, but also happens when the Activity is returned to from another Activity. Use
+     * the fact that onStart is called when the user returns to this Activity to
+     * check if the location setting or the preferred units setting has changed. If it has changed,
+     * we are going to perform a new query.
+     */
+    @Override
+    protected void onStart() {
+        super.onStart();
+        if (FLAG_FOR_PREF_UPDATES) {
+            getSupportLoaderManager().restartLoader(WEATHER_LOADER, null, this);
+            FLAG_FOR_PREF_UPDATES = false;
+        }
+    }
+
+    // (8) Override onDestroy and unregister MainActivity as a SharedPreferenceChangedListener
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        PreferenceManager.getDefaultSharedPreferences(this).unregisterOnSharedPreferenceChangeListener(this);
     }
 
     // (10) Show a Toast when an item is clicked, displaying that item's weather data
@@ -163,6 +227,82 @@ public class MainActivity extends AppCompatActivity implements ForecastAdapter.F
     }
 
 
+
+    @SuppressLint("StaticFieldLeak")
+    @Override
+    public Loader<String[]> onCreateLoader(int id, final Bundle args) {
+        return new AsyncTaskLoader<String[]>(this) {
+            String[] mWeatherData = null;
+            // (2) Within onCreateLoader, return a new AsyncTaskLoader that looks a lot like the existing FetchWeatherTask.
+            // (3) Cache the weather data in a member variable and deliver it in onStartLoading.
+
+            @Override
+            public void onStartLoading() {
+                super.onStartLoading();
+                if (mWeatherData != null) {
+                    deliverResult(mWeatherData);
+                } else {
+                    mProgressBar.setVisibility(View.VISIBLE);
+                    forceLoad();
+                }
+            }
+            @Override
+            public String[] loadInBackground() {
+
+                String locationQuery = SunshinePreferences
+                        .getPreferredWeatherLocation(MainActivity.this);
+
+                URL weatherRequestUrl = NetworkUtils.buildUrl(locationQuery);
+
+                try {
+                    String jsonWeatherResponse = NetworkUtils
+                            .getResponseFromHttpUrl(weatherRequestUrl);
+
+                    String[] simpleJsonWeatherData = OpenWeatherJsonUtils
+                            .getSimpleWeatherStringsFromJson(MainActivity.this, jsonWeatherResponse);
+
+                    return simpleJsonWeatherData;
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    return null;
+                }
+            }
+
+            /**
+             * Sends the result of the load to the registered listener.
+             *
+             * @param data The result of the load
+             */
+            public void deliverResult(String[] data) {
+                mWeatherData = data;
+                super.deliverResult(data);
+            }
+        };
+    }
+
+    @Override
+    public void onLoadFinished(Loader<String[]> loader, String[] data) {
+        mProgressBar.setVisibility(View.INVISIBLE);
+        mForecastAdapter.setWeatherData(data);
+        if (null == data) {
+            showErrorMessage();
+        } else {
+            showWeatherDataView();
+        }
+    }
+
+    @Override
+    public void onLoaderReset(Loader<String[]> loader) {
+        /*
+         * We aren't using this method in our example application, but we are required to Override
+         * it to implement the LoaderCallbacks<String> interface
+         */
+    }
+
+    // (4) When the load is finished, show either the data or an error message if there is no data
+
+/*
+    // (6) Remove any and all code from MainActivity that references FetchWeatherTask
     // (5) Created a class that extends AsyncTask to perform network requests
     public class WeatherQueryTask extends AsyncTask<String, Void, String[]> {
         //(18) Within your AsyncTask, override the method onPreExecute and show the loading indicator
@@ -193,7 +333,6 @@ public class MainActivity extends AppCompatActivity implements ForecastAdapter.F
                 e.printStackTrace();
                 return null;
             }
-
         }
 
         @Override
@@ -211,9 +350,9 @@ public class MainActivity extends AppCompatActivity implements ForecastAdapter.F
             else {
                 showErrorMessage();
             }
-
         }
     }
+    */
     // (6) Override the doInBackground method to perform network requests
     // (7) Override the onPostExecute method to display the results of the network request
 
@@ -228,7 +367,7 @@ public class MainActivity extends AppCompatActivity implements ForecastAdapter.F
         return true;
     }
     //(6) Return true to display the menu
-
+    //(5) Refactor the refresh functionality to work with our AsyncTaskLoader
     //(7) Override onOptionsItemSelected to handle clicks on the refresh button
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
@@ -236,19 +375,31 @@ public class MainActivity extends AppCompatActivity implements ForecastAdapter.F
         if (id == R.id.action_refresh) {
             // (46) Instead of setting the text to "", set the adapter to null before refreshing
             mForecastAdapter.setWeatherData(null);
-            loadWeatherData();
+            getSupportLoaderManager().restartLoader(WEATHER_LOADER, null, this);
             return true;
         }
 
         // (2) Launch the map when the map menu item is clicked
         if (id == R.id.action_map) {
             openMap();
+            return true;
+        }
+        // (1) Add new Activity called SettingsActivity using Android Studio wizard
+        // Do step 2 in SettingsActivity
+        // (2) Set setDisplayHomeAsUpEnabled to true on the support ActionBar
+
+        // (6) Launch SettingsActivity when the Settings option is clicked
+        if (id == R.id.action_settings) {
+            Intent settings_intent = new Intent(this, SettingsActivity.class);
+            startActivity(settings_intent);
+            return true;
         }
         return super.onOptionsItemSelected(item);
     }
 
     public void openMap() {
-        String addressString = "1521 7th Avenue";
+        // (9) Use preferred location rather than a default location to display in the map
+        String addressString = SunshinePreferences.getPreferredWeatherLocation(this);
         Uri.Builder builder = new Uri.Builder();
         builder.scheme("geo")
                 .path("0,0")
@@ -263,4 +414,11 @@ public class MainActivity extends AppCompatActivity implements ForecastAdapter.F
                     + ", no receiving apps installed!");
         }
     }
+
+    //(5) Override onSharedPreferenceChanged to set the preferences flag to true
+    @Override
+    public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
+        FLAG_FOR_PREF_UPDATES = true;
+    }
+
 }

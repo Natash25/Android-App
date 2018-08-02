@@ -1,6 +1,7 @@
 package com.example.android.sunshine.utilities;
 
 import android.content.Context;
+import android.support.v4.content.Loader;
 import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -17,6 +18,9 @@ public class ForecastAdapter extends RecyclerView.Adapter<ForecastAdapter.Foreca
     // (1) Add an interface called ForecastAdapterOnClickHandler
     public interface ForecastAdapterOnClickHandler {
         void onClick(String weatherForToday);
+
+        // (4) When the load is finished, show either the data or an error message if there is no data
+        //void onLoadFinished(Loader<String> loader, String[] data);
     }
     // (2) Within that interface, define a void method that access a String as a parameter
 
